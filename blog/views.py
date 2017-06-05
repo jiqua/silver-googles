@@ -6,11 +6,12 @@ from .forms import PostForm, CommentForm
 from .models import Post, Comment
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .serializers import PostSerializer
+from .serializers import PostSerializer, CommentSerializer
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import permissions
+from rest_framework import generics
 
 def user_can_create(user):
     return user.is_authenticated() and user.has_perm('blog.can_create')
@@ -18,57 +19,76 @@ def user_can_create(user):
 def user_can_publish(user):
     return user.is_authenticated() and user.has_perm('blog.can_publish')
 
-@api_view(['GET','POST'])
-@permission_classes((permissions.AllowAny,))
-def post_list(request):
-    """
-    List all code snippets, or create a new snippet.
-    """
-    if request.method == 'GET':
-        posts = Post.objects.all()
-        serializer = PostSerializer(posts, many=True)
-        return Response(serializer.data)
+class post_list_api(generics.ListCreateAPIView):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
 
-    elif request.method == 'POST':
-        serializer = PostSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@csrf_exempt
-def post_detail(request, pk):
-    """
-    Retrieve, update or delete a code snippet.
-    """
-    try:
-        post = Post.objects.get(pk=pk)
-    except Post.DoesNotExist:
-        return HttpResponse(status=404)
+class post_detail_api(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
 
-    if request.method == 'GET':
-        serializer = PostSerializer(post)
-        return JsonResponse(serializer.data)
+class comment_list_api(generics.ListCreateAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
 
-    elif request.method == 'PUT':
-        data = JSONParser().parse(request)
-        serializer = PostSerializer(Post, data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data)
-        return JsonResponse(serializer.errors, status=400)
+class comment_detail_api(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
 
-    elif request.method == 'DELETE':
-        post.delete()
-        return HttpResponse(status=204)
-
+# @api_view(['GET','POST'])
+# @permission_classes((permissions.AllowAny,))
 # def post_list(request):
-#     posts = Post.objects.filter(published_date__lte=timezone.now()).order_by('published_date')
-#     return render(request, 'blog/post_list.html', {'posts': posts})
-
+#
+#     def get(self, request, format=None):
+#         posts = Post.objects.all()
+#         serializer = PostSerializer(posts, many=True)
+#         return Response(serializer.data)
+#
+#     def post(self, request, format=None):
+#         serializer = PostSerializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#
+# @csrf_exempt
 # def post_detail(request, pk):
-#     post = get_object_or_404(Post, pk=pk)
-#     return render(request, 'blog/post_detail.html', {'post': post})
+#     """
+#     Retrieve, update or delete a code snippet.
+#     """
+#
+#     def get_object(self, pk):
+#         try:
+#             post = Post.objects.get(pk=pk)
+#         except Post.DoesNotExist:
+#             return HttpResponse(status=404)
+#
+#     def get(self, request, pk, format=None):
+#         post = self.get_object(pk)
+#         serializer = PostSerializer(post)
+#         return Response(serializer.data)
+#
+#     def put(self, request, pk, format=None):
+#         post = self.get_object(pk)
+#         serializer = PostSerializer(post, data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data)
+#         return Response(serializer.errors, status=400)
+#
+#     def delete(self, request, pk, format=None):
+#         post = self.get_object(pk)
+#         post.delete()
+#         return HttpResponse(status=204)
+
+def post_list(request):
+    posts = Post.objects.filter(published_date__lte=timezone.now()).order_by('published_date')
+    return render(request, 'blog/post_list.html', {'posts': posts})
+
+def post_detail(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    return render(request, 'blog/post_detail.html', {'post': post})
 
 @user_passes_test(user_can_create, login_url="/accounts/login/")
 def post_new(request):

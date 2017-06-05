@@ -1,4 +1,5 @@
 from django.conf.urls import url
+from rest_framework.urlpatterns import format_suffix_patterns
 from . import views
 
 urlpatterns = [
@@ -12,4 +13,6 @@ urlpatterns = [
     url(r'^post/(?P<pk>\d+)/comment/$', views.add_comment_to_post, name='add_comment_to_post'),
     url(r'^comment/(?P<pk>\d+)/approve/$', views.comment_approve, name='comment_approve'),
     url(r'^comment/(?P<pk>\d+)/remove/$', views.comment_remove, name='comment_remove'),
+    url(r'^api/comments/$',views.comment_list_api.as_view()),
+    url(r'^api/comments/(?P<pk>\d+)/$',views.comment_detail_api.as_view())
 ]
